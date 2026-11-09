@@ -25,6 +25,8 @@ def List.unique' {α} [DecidableEq α] : List α → List α
     Nat.lt_succ_of_le (length_filter_le _ _)
   x :: unique' (xs.filter (· ≠ x))
 termination_by xs => xs.length
+decreasing_by
+  exact Nat.lt_succ_of_le (by simpa using List.length_filter_le (fun y => decide (y.val ≠ x)) xs.attach)
 
 def List.filterSpec (p : α → Bool) : List α → List α
 | [] => []
@@ -90,7 +92,7 @@ theorem List.removeAllEq_singleton_hd_neq {α : Type _} [DecidableEq α] :
     x ≠ y → removeAllEq (x :: xs) [y] = x :: removeAllEq xs [y] :=
 by intro x y xs hneq
    simp only [removeAllEq, filter, mem_singleton, hneq, not_false_eq_true,
-              decide_True, decide_not]
+              decide_true, decide_not]
 
 theorem List.removeAllEq_singleton_nonelem_eq {α} [DecidableEq α] :
   ∀ (xs : List α) (x : α), x ∉ xs → List.removeAllEq xs [x] = xs := by
@@ -129,11 +131,11 @@ theorem List.uniqueAux_acc_append_filter {α} [DecidableEq α] :
     simp only [uniqueAux, filter]  -- previously filterAux
     cases Decidable.em (x ∈ acc) with
     | inl hin =>
-      simp only [hin, ite_true, not_true_eq_false, decide_False]
+      simp only [hin, ite_true, not_true_eq_false, decide_false]
       rw [ih₁]
     | inr hout =>
       -- Case x is not already in the accumulator
-      simp only [hout, ite_false, not_false_eq_true, decide_True]
+      simp only [hout, ite_false, not_false_eq_true, decide_true]
       -- next line previously filterAux
       simp only [reverse_singleton, singleton_append, unique,
                  uniqueAux, List.not_mem_nil, ite_false]
@@ -217,7 +219,7 @@ def List.memT_unique_of_memT {α} [DecidableEq α]
       intro hneg
       cases hneg <;>
       contradiction
-    simp only [hnin, not_false_eq_true, decide_True]
+    simp only [hnin, not_false_eq_true, decide_true]
 termination_by x xs hmem => xs.length
 -- END `groupPairsByKey`
 
@@ -259,7 +261,7 @@ theorem List.not_mem_filter_neq [DecidableEq α] (y : α) : ∀ (xs : List α),
     | false =>
       simp only [ne_eq, decide_not, hdec, Bool.not_false, mem_cons] at h
       cases h with
-      | inl heq => cases heq; simp only [decide_True, Bool.true_eq_false] at hdec
+      | inl heq => cases heq; simp only [decide_true, Bool.true_eq_false] at hdec
       | inr hmem =>
         simp only [←decide_not, ←ne_eq] at hmem
         exact not_mem_filter_neq _ _ hmem
@@ -290,7 +292,7 @@ theorem List.unique_sublist {xs ys : List α} :
     apply ih
     cases hunique
     repeat assumption
-  | cons₂ x hsubl' ih =>
+  | cons_cons x hsubl' ih =>
     constructor
     . cases hunique
       intro hneg
@@ -326,8 +328,9 @@ theorem List.unique'_sublist [DecidableEq α] : ∀ (xs : List α),
   | x :: xs =>
     have : (filter (fun x_1 => !decide (x_1 = x)) xs).length < xs.length + 1 :=
       Nat.lt_succ_of_le (length_filter_le _ _)
-    Sublist.cons₂ _ $
-      Sublist.trans (List.unique'_sublist _) (List.filter_sublist _)
+    by
+      simpa only [unique'] using
+        Sublist.cons_cons x (Sublist.trans (List.unique'_sublist (xs.filter (· ≠ x))) List.filter_sublist)
 termination_by xs => xs.length
 
 unseal List.unique' in
@@ -337,8 +340,10 @@ theorem List.unique'_Unique [DecidableEq α] : ∀ (xs : List α),
   | x :: xs =>
     have : (filter (fun x_1 => !decide (x_1 = x)) xs).length < xs.length + 1 :=
       Nat.lt_succ_of_le (length_filter_le _ _)
-    .cons (mt (Sublist.mem.swap (unique'_sublist _)) (not_mem_filter_neq x xs))
-          (unique'_Unique _)
+    by
+      simpa only [unique'] using
+        Unique.cons (mt (Sublist.mem.swap (unique'_sublist _)) (not_mem_filter_neq x xs))
+          (unique'_Unique (xs.filter (· ≠ x)))
 termination_by xs => xs.length
 -- END `leftJoin` spec 4 helpers
 

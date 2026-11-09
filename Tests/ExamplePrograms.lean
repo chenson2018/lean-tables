@@ -41,36 +41,11 @@ def randUpTo (lcg : LCG) (max : Nat) : Fin max.succ × LCG :=
     (⟨newSeed % max.succ, Nat.mod_lt _ (Nat.zero_lt_succ max)⟩, ⟨newSeed⟩)
 end LCG
 
--- Backporting `List.finRange`
-theorem _root_.Fin.foldr_loop (f : Fin (n+1) → α → α) (x) (h : i+1 ≤ n+1) :
-    Fin.foldr.loop (n+1) f ⟨i+1, h⟩ x =
-      f 0 (Fin.foldr.loop n (fun j => f j.succ) ⟨i, Nat.le_of_succ_le_succ h⟩ x) := by
-  induction i generalizing x with
-  | zero => simp only [Nat.zero_add, Fin.foldr.loop, Fin.zero_eta]
-  | succ i ih => simp only [Fin.foldr.loop, ih, Fin.succ_mk]
-
-theorem _root_.Fin.foldr_succ (f : Fin (n + 1) → α → α) (x) :
-    Fin.foldr (n + 1) f x = f 0 (Fin.foldr n (fun i => f i.succ) x) := Fin.foldr_loop ..
-
-def _root_.List.ofFn {n} (f : Fin n → α) : List α := Fin.foldr n (f · :: ·) []
-
-def _root_.List.finRange (n : Nat) : List (Fin n) := List.ofFn fun i => i
-
-theorem _root_.List.length_ofFn {n} (f : Fin n → α) : (List.ofFn f).length = n := by
-  simp only [List.ofFn]
-  induction n with
-  | zero => simp only [Fin.foldr, Fin.foldr.loop, List.length_nil]
-  | succ n ih =>
-  simp only [Fin.foldr_succ, List.length_cons, ih]
-
-theorem _root_.List.length_finRange {n} : (List.finRange n).length = n :=
-  List.length_ofFn _
-
 -- B2T2's assumed `sample` function
 -- This is very inefficiently implemented to avoid an unwieldy termination proof
 def sample (xs : List α) (n : Fin (xs.length + 1)) : List α :=
   let (indices, _) := n.val.fold
-    (λ _ acc =>
+    (λ _ _ acc =>
       let (acc, remainingIndices, lcg) := acc
       match hni : remainingIndices.length with
       -- Note: the zero case will never be reached; it could be eliminated with
@@ -97,7 +72,7 @@ Table.mk [
 
 /-! `pHackingHomogeneous` and `pHackingHeterogeneous` -/
 
--- Lean 4.14 lacks built-in vectors, so we define them here:
+-- An inductive vector used by the Fisher test example:
 inductive Vector (α : Type u) : Nat → Type u where
   | nil : Vector α 0
   | cons : α → Vector α n → Vector α (n + 1)

@@ -19,7 +19,7 @@ theorem Nat.lt_of_sub_add {m k n : Nat} (hkm : k < m) (hn : n > 0) :
 theorem Int.natAbs_of_nonneg_eq_toNat : ∀ z : Int, z ≥ 0 → z.natAbs = z.toNat
   | ofNat n, h => rfl
 
-theorem Int.add_neg_eq_sub (m : Int) : ∀ n, n < 0 → m + n = m - n.natAbs
+theorem Int.add_neg_eq_sub_natAbs (m : Int) : ∀ n, n < 0 → m + n = m - n.natAbs
   | negSucc n, h => rfl
 
 -- -- TODO: decide whether to use this or `Fin.instOfNat`
@@ -27,6 +27,3 @@ theorem Int.add_neg_eq_sub (m : Int) : ∀ n, n < 0 → m + n = m - n.natAbs
 --   if h : n < k.succ
 --   then ⟨n, h⟩
 --   else ⟨0, Nat.zero_lt_succ k⟩
-
-abbrev DecidableLE (τ : Type _) [LE τ] :=
-  DecidableRel (· ≤ · : τ → τ → Prop)

@@ -25,7 +25,7 @@ theorem addRows_spec2 :
     nrows (addRows t rs) = nrows t + rs.length := by
   intro t rs
   simp only [nrows, Schema.length_eq_List_length]
-  exact List.length_append t.rows rs
+  exact List.length_append
 
 -- `addColumn`
 
@@ -117,7 +117,7 @@ theorem vcat_spec2 :
     nrows (vcat t1 t2) = nrows t1 + nrows t2 := by
   intro t1 t2
   simp only [nrows, Schema.length_eq_List_length]
-  exact List.length_append t1.rows t2.rows
+  exact List.length_append
 
 -- `hcat`
 
@@ -158,7 +158,7 @@ theorem crossJoin_spec2 :
     nrows (crossJoin t₁ t₂) = nrows t₁ * nrows t₂ :=
 by intros sch₁ sch₂ t₁ t₂
    simp only [nrows, crossJoin, List.length_map, Schema.length_eq_List_length]
-   apply List.length_prod
+   apply List.length_cartesianProd
 
 -- `leftJoin`
 
@@ -217,9 +217,9 @@ theorem leftJoin_spec4.pick_lemma {s₁ s₂ : @Schema η}
   s'.pick (List.map (fun x => ⟨x.fst, x.2.2.fst⟩) xs) := by
   intro pred r' hr' s' hs'
   cases xs with
-  | nil => simp [Row.pick]
+  | nil => simp [List.map, Row.pick]
   | cons x xs =>
-    simp only [Row.pick]
+    simp only [List.map, Row.pick]
     have : r'.getCell x.2.2.1 = s'.getCell x.2.2.1 := by
       have hr'_pred : pred r' := List.filter_mem_pred_true t₂.rows _ _ hr'
       have hs'_pred : pred s' := List.filter_mem_pred_true t₂.rows _ _ hs'
@@ -267,7 +267,6 @@ theorem leftJoin_spec4 {s₁ s₂ : @Schema η}
   intro hdistinct
   simp only [nrows]
   rw [Schema.length_eq_List_length, leftJoin, List.length_flatMap]
-  unfold Function.comp
   rw [List.sum_map_const 1]
   . apply Nat.one_mul
   . intro r hr
@@ -279,9 +278,12 @@ theorem leftJoin_spec4 {s₁ s₂ : @Schema η}
               (r.getCell c.snd.snd.snd) (r₂.getCell c.snd.snd.fst)
               : Decidable (r.getCell c.snd.snd.snd = r₂.getCell c.snd.snd.fst)))
     match hmatch : t₂.rows.filter pred with
-    | [] => simp only [List.length, leftJoin.findMatchingRows, hmatch]
+    | [] =>
+      dsimp [pred] at hmatch
+      simp only [leftJoin.findMatchingRows, hmatch, List.length]
     | f :: fs =>
-      simp only [hmatch, leftJoin.findMatchingRows]
+      dsimp [pred] at hmatch
+      simp only [leftJoin.findMatchingRows, hmatch]
       suffices hnil : fs = [] by simp only [List.length_map, hnil, List.length]
       have huniq : List.Unique (t₂.rows.map
           (·.pick (Schema.listCHOfActionListRemoveOtherDecCH cs))) :=
@@ -289,7 +291,7 @@ theorem leftJoin_spec4 {s₁ s₂ : @Schema η}
       have h_filt_uniq : List.Unique $ (t₂.rows.filter pred).map
           (·.pick (Schema.listCHOfActionListRemoveOtherDecCH cs)) :=
         List.unique_sublist huniq (List.map_sublist_of_sublist _ _ _
-                                    (List.filter_sublist _))
+                                    List.filter_sublist)
       have h_filt_eq :
         ∀ r' ∈ (t₂.rows.filter pred).map
           (·.pick (Schema.listCHOfActionListRemoveOtherDecCH cs)),
@@ -302,7 +304,7 @@ theorem leftJoin_spec4 {s₁ s₂ : @Schema η}
         simp only [Schema.listCHOfActionListRemoveOtherDecCH]
         apply leftJoin_spec4.pick_lemma _ _ _ _ hr' _ hs'
       cases List.nil_singleton_of_all_eq_unique h_filt_eq h_filt_uniq with
-      | inl hnil => simp [hmatch] at hnil
+      | inl hnil => simp [pred, hmatch] at hnil
       | inr hsing =>
         rw [hmatch] at hsing
         rcases hsing with ⟨x, hx⟩
@@ -522,7 +524,7 @@ theorem head_spec3 : ∀ (t : Table sch) (z : {z : Int // z.natAbs < nrows t}),
   simp only at h
   simp only [nrows, Schema.length_eq_List_length] at prop
   simp only [head, nrows, List.dropLastN, Function.comp, h,
-             Schema.length_eq_List_length, ite_true, Int.add_neg_eq_sub]
+             Schema.length_eq_List_length, ite_true, Int.add_neg_eq_sub_natAbs]
   rw [List.length_reverse, List.length_drop, List.length_reverse]
   rw [Int.ofNat_sub]
   exact Nat.le_of_lt prop
@@ -555,18 +557,17 @@ theorem dropColumn_spec2_unique :
   unfold Schema.Unique at hsch
   induction hc with
   | @hd nm s' τ =>
-    simp only [List.filter, List.elem]
+    simp only [Schema.names, List.map, List.filter, List.elem]
     cases hsch with | cons hnmem hu =>
     simp only at hnmem
     have : (decide (nm ∉ [nm])) = false :=
-      by simp only [decide_not, List.mem_singleton, decide_True,
-                    decide_False, not]
+      by simp only [decide_not, List.mem_singleton, decide_true,
+                    decide_false, not]
     rw [this]
     simp only [Schema.names, List.map]
     have : List.filter (λ x => x ∉ [nm]) (List.map Prod.fst s')
             = List.removeAllEq (List.map Prod.fst s') [nm] := rfl
-    rw [this, List.removeAllEq_singleton_nonelem_eq]
-    exact hnmem
+    rw [this, List.removeAllEq_singleton_nonelem_eq _ _ hnmem]
   | @tl hdr nm s' h ih =>
     simp only [Schema.names, List.map]
     cases hdr with | mk nm₁ τ₁ =>
@@ -580,7 +581,7 @@ theorem dropColumn_spec2_unique :
     | inr hneq =>
       rw [←List.removeAllEq]
       rw [List.removeAllEq_singleton_hd_neq]
-      . congr
+      . apply congrArg (nm₁ :: ·)
         apply ih
         . cases hsch; assumption
         . exact Table.mk []
@@ -837,7 +838,7 @@ theorem completeCases_spec {τ : Type u} :
   (completeCases t c hc).length = nrows t :=
 λ t c hc => by
   simp only [nrows, Schema.length_eq_List_length]
-  exact Eq.trans (List.length_map _ _) (List.length_map _ _)
+  exact Eq.trans (List.length_map _) (List.length_map _)
 
 -- `dropna`
 
@@ -875,9 +876,7 @@ theorem pivotLonger_spec1 :
 λ t cs c1 c2 => by
   simp only [header, Schema.names]
   rw [Schema.append_eq_List_append]
-  have := List.map_append Prod.fst (sch.removeTypedNames cs) [(c1, η), (c2, τ)]
-  simp only [HAppend.hAppend, Append.append] at this
-  rw [this]
+  rw [List.append_eq, List.map_append]
   rfl
 
 def pivotLonger_spec2 {c τ}
@@ -928,18 +927,11 @@ theorem pivotWider_spec1 :
   intro t c1 c2 hc1 hc2 inst
   simp only [header, Schema.names]
   rw [Schema.append_eq_List_append]
-  have := List.map_append Prod.fst
-    (Schema.removeHeaders sch
-      (ActionList.cons { fst := (c1, η), snd := hc1 }
-        (ActionList.cons { fst := (c2, τ), snd := hc2 } ActionList.nil)))
-    (List.map (fun x => (x, τ)) (List.unique (List.somes (getColumn2 t c1 hc1))))
-  simp only [HAppend.hAppend, Append.append] at this
-  rw [this]
+  rw [List.append_eq, List.map_append]
   rw [List.map_map]
   have hf : (Prod.fst ∘ fun x => (x, τ)) = @id η := funext (λ _ => rfl)
   rw [hf]
   rw [List.map_id]
-  rfl
 
 def pivotWider_spec2 {τ τ'} :
   ∀ (t : Table sch) (c1 c2 : η) (hc1 : sch.HasCol (c1, η))
@@ -1316,7 +1308,7 @@ theorem select_spec4 {sch' : @Schema η} :
   nrows (select t f) = nrows t := by
   intros
   simp only [nrows, select, Schema.length_eq_List_length]
-  exact Eq.trans (List.length_map _ _) (List.length_verifiedEnum _)
+  exact Eq.trans (List.length_map _) (List.length_verifiedEnum _)
 
 -- `selectMany`
 

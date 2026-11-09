@@ -152,7 +152,7 @@ elab_rules : term <= expType
       | i+1, false =>
         let ctor : TSyntax `term ←
           if isList then ``(List.cons) else ``(ActionList.cons)
-        let elemRaw : TSyntax `term := ⟨elems.elemsAndSeps.get! i⟩
+        let elemRaw : TSyntax `term := ⟨elems.elemsAndSeps[i]!⟩
         let elemRawTp ← inferType (← elabTerm elemRaw none)
         let elemRawIsTuple := (← whnfD elemRawTp).isAppOf ``Prod  -- or use paramTp
         let item : TSyntax `term ← do

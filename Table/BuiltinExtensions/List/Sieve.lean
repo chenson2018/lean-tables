@@ -91,7 +91,7 @@ theorem List.mem_map_sieve_of_mem_map {f : α → β} {x : α}
 theorem List.sieve_map_mem_iff_true_unique :
   ∀ {i} {xs : List α} {bs : List Bool} (pf1 pf2) (f : α → β)
     (hu : List.Unique (xs.map f)),
-  (xs.map f).get ⟨i, length_map xs f ▸ pf1⟩ ∈ (bs.sieve xs).map f
+  (xs.map f).get ⟨i, length_map f (as := xs) ▸ pf1⟩ ∈ (bs.sieve xs).map f
   ↔ bs.get ⟨i, pf2⟩ = true := by
   intro i xs bs pf1 pf2 f hu
   apply Iff.intro

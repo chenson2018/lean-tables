@@ -105,9 +105,7 @@ def Row.nths {schema} :
     (ns : List (Fin $ Schema.length schema))
       → Row schema
       → @Row η dec_η (Schema.nths schema ns)
-| [], Row.nil => Row.nil
-| [], Row.cons x xs => Row.nil
-| n::ns, Row.nil => nomatch n.2
+| [], _ => Row.nil
 | n::ns, r => Row.cons (Row.nth r n.val n.2) (nths ns r)
 
 def Row.getCell {schema : @Schema η} {c : η} {τ : Type u}
@@ -164,11 +162,7 @@ def Row.isSubRow : {schema : @Schema η} →
                Bool
 | _, [], Row.nil, _ => true
 | s :: ss, ⟨(nm, _), pf, _⟩ :: sbs, Row.cons sc scs, r =>
-  have hterm : sizeOf scs < sizeOf (Row.cons sc scs) :=
-    by conv => lhs; rw [←Nat.zero_add (sizeOf scs)]
-       apply @Nat.add_lt_add_right 0 (1 + sizeOf sc) _ (sizeOf scs)
-       rw [Nat.add_comm, Nat.add_one]
-       apply Nat.zero_lt_succ
+  have hterm : sizeOf scs < sizeOf (Row.cons sc scs) := by simp; omega
   if r.getCell pf = sc
   then isSubRow scs r
   else false
@@ -194,7 +188,7 @@ def Row.removeColumnsHeaders {s : @Schema η} :
 | .cons c cs, r => removeColumnsHeaders cs $
                     removeColumn (Schema.colImpliesName c.2) r
 
-@[semireducible] def Row.removeTypedColumns {s : @Schema η} {τ : Type u} :
+def Row.removeTypedColumns {s : @Schema η} {τ : Type u} :
     (cs : ActionList (Schema.removeTypedName τ) s) →
     Row s →
     Row (s.removeTypedNames cs)

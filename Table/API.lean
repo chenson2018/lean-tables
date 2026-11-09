@@ -47,7 +47,7 @@ def crossJoin {schema₁ schema₂ : @Schema η}
   (t1 : Table schema₁) (t2 : Table schema₂) :
   Table (Schema.append schema₁ schema₂) :=
   {rows := List.map (λ (c1, c2) => Row.append c1 c2)
-                    (List.prod t1.rows t2.rows)}
+                    (List.cartesianProd t1.rows t2.rows)}
 
 def leftJoin {schema₁ schema₂ : @Schema η}
              (t₁ : Table schema₁)
@@ -251,7 +251,7 @@ def bin [ToString η]
 | [] => Table.mk []
 | s :: ss =>
   let min := s
-  let max := n * ((List.getLast (s :: ss) List.noConfusion) / n) + 1
+  let max := n * ((List.getLast (s :: ss) (by simp)) / n) + 1
   let rec kthBin : BinType → List BinType → List (BinType × Nat)
   | k, [] => []
   | k, x :: xs =>

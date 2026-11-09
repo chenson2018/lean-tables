@@ -137,7 +137,7 @@ theorem List.length_sublist_le {α} {xs ys : List α} :
   xs <+ ys → xs.length ≤ ys.length
   | .slnil => .refl
   | .cons _ hsubl => Nat.le_succ_of_le (length_sublist_le hsubl)
-  | .cons₂ _ hsubl => Nat.succ_le_succ (length_sublist_le hsubl)
+  | .cons_cons _ hsubl => Nat.succ_le_succ (length_sublist_le hsubl)
 
 theorem List.matchKey_fst_eq_filter_k_map_snd {κ ν} [inst : DecidableEq κ] :
   ∀ (xs : List (κ × ν)) (k : κ),
@@ -189,10 +189,10 @@ theorem List.length_uniqueAux_matchKey {κ ν} [DecidableEq κ]
   (uniqueAux (map Prod.fst xs) acc).length
   = (uniqueAux (map Prod.fst (matchKey xs k).snd) acc).length :=
 by induction xs with
-   | nil => intros; simp [uniqueAux]
+   | nil => intros; simp [matchKey, uniqueAux]
    | cons x xs ih =>
      intros acc hk
-     simp only [length, uniqueAux]
+     simp only [map, length, uniqueAux]
      cases Decidable.em (x.fst ∈ acc) with
      | inl hin =>
        simp only [hin, ite_true, matchKey]
@@ -209,7 +209,7 @@ by induction xs with
          exact hout
        | inr hneq =>
          rw [ih _ (List.Mem.tail _ hk)]
-         simp only [hneq, ite_false, uniqueAux, hout]
+         simp only [hneq, ite_false, map, uniqueAux, hout]
 
 instance (y : Nat) : Decidable (∀ x : Nat, x - y = x) :=
   if h : y = 0
@@ -224,7 +224,7 @@ instance (y : Nat) : Decidable (∀ x : Nat, x - y = x) :=
 theorem List.length_groupPairsByKey {κ} [DecidableEq κ] {ν} :
   ∀ (xs : List (κ × ν)),
   length (groupPairsByKey xs) = (xs.map Prod.fst).unique.length
-| [] => by simp only [groupPairsByKey, unique, uniqueAux, length]
+| [] => by simp only [groupPairsByKey, map, unique, uniqueAux, length, reverse_nil]
 | (k, v) :: xs => by
   have hterm : length (matchKey xs k).snd < Nat.succ (length xs) :=
     Nat.lt_of_succ_le $ Nat.succ_le_succ $ matchKey_snd_length xs k
@@ -255,7 +255,7 @@ theorem List.matchKey_snd_sublist [DecidableEq κ] :
   have ih := matchKey_snd_sublist k kvs
   if h : kv.fst = k
   then by simp only [matchKey, h, ite_true]; exact Sublist.cons _ ih
-  else by simp only [matchKey, h, ite_true]; exact Sublist.cons₂ _ ih
+  else by simp only [matchKey, h, ite_true]; exact Sublist.cons_cons _ ih
 
 theorem List.matchKey_snd_sublist_of_sublist [DecidableEq κ] :
   ∀ (k : κ) (xs ys : List (κ × ν)),
@@ -268,13 +268,13 @@ theorem List.matchKey_snd_sublist_of_sublist [DecidableEq κ] :
     cases Decidable.em (x'.fst = k) with
     | inl heq => simp only [heq, ite_true]; apply ih
     | inr hneq => simp only [hneq, ite_false]; apply Sublist.cons _ ih
-  | cons₂ x' h' ih =>
+  | cons_cons x' h' ih =>
     simp only [matchKey]
     cases Decidable.em (x'.fst = k) with
     | inl heq => simp only [heq, ite_true]; assumption
     | inr hneq =>
       simp only [hneq, ite_false]
-      apply Sublist.cons₂ _ ih
+      apply Sublist.cons_cons _ ih
 
 theorem List.fst_groupPairsByKey_sublist [DecidableEq κ] : ∀ (kvs : List (κ × ν)),
   map Prod.fst (groupPairsByKey kvs) <+ map Prod.fst kvs
@@ -285,7 +285,7 @@ theorem List.fst_groupPairsByKey_sublist [DecidableEq κ] : ∀ (kvs : List (κ 
   have hsubl := matchKey_snd_sublist k kvs
   by
     simp only [groupPairsByKey]
-    exact Sublist.cons₂ _ $
+    exact Sublist.cons_cons _ $
     Sublist.trans ih (map_sublist_of_sublist _ _ _ hsubl)
 termination_by kvs => kvs.length
 
@@ -404,18 +404,22 @@ theorem List.all_in_map_fst_groupPairsByKey_of_sublist [DecidableEq κ] :
     ∀ x, x ∈ map Prod.fst (groupPairsByKey xs) → x ∈ map Prod.fst (groupPairsByKey ys)
 | _, _, @Sublist.cons _ xs ys (k, v) hsubl, x, hx =>
   if heq : x = k
-  then heq ▸ Mem.head _
+  then by
+    simp only [groupPairsByKey, map]
+    exact heq ▸ Mem.head _
   else
     have hterm : ys.length < Nat.succ ys.length := Nat.le.refl
     have ih := all_in_map_fst_groupPairsByKey_of_sublist hsubl x hx
     have hor : x = k ∨ x ∈ map Prod.fst (groupPairsByKey (matchKey ys k).snd) :=
       mem_fst_groupPairsByKey_key_or_snd
         (Sublist.mem ih (fst_groupPairsByKey_sublist ys)) k
-    Mem.tail k $
-    match hor with
-    | .inl hxeq => absurd hxeq heq
-    | .inr hmem => hmem
-| _, _, @Sublist.cons₂ _ xs ys (k, v) hsubl, x, hx => by
+    by
+      simp only [groupPairsByKey, map]
+      exact Mem.tail k $
+        match hor with
+        | .inl hxeq => absurd hxeq heq
+        | .inr hmem => hmem
+| _, _, @Sublist.cons_cons _ xs ys (k, v) hsubl, x, hx => by
     simp only [groupPairsByKey]
     simp only [map]
     simp only [groupPairsByKey] at hx
@@ -499,9 +503,11 @@ theorem List.groupPairsByKey_fsts_no_duplicates [DecidableEq κ] :
 | (k, v) :: kvs =>
   have h_help : (matchKey kvs k).2.length < kvs.length.succ :=
     matchKey_length_lt k kvs
-  Unique.cons
-    (List.key_not_mem_fst_groupPairsByKey_matchKey_snd _ _)
-    (groupPairsByKey_fsts_no_duplicates (matchKey kvs k).2)
+  by
+    simp only [groupPairsByKey, map]
+    exact Unique.cons
+      (List.key_not_mem_fst_groupPairsByKey_matchKey_snd _ _)
+      (groupPairsByKey_fsts_no_duplicates (matchKey kvs k).2)
 termination_by xs => xs.length
 decreasing_by assumption
 
@@ -514,7 +520,7 @@ theorem List.mem_of_mem_injective_map (f : α → β) (hf : Injective f) :
     have hbeqx := hf _ _ hb.right
     Eq.subst (motive := λ a => a ∈ xs) hbeqx hb.left
   )
-  (mem_map_of_mem _)
+  mem_map_of_mem
 
 theorem List.unique_of_map_injective_unique
   (f : α → β) (hf : Injective f) : ∀ (xs : List α) (hxs : Unique xs),

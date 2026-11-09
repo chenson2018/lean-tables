@@ -14,8 +14,12 @@ set_option pp.mvars false
 -- hence the relatively unreadable message
 
 /--
-error: typeclass instance problem is stuck, it is often due to metavariables
+error: typeclass instance problem is stuck
   DecidableEq ?_
+
+Note: Lean will not try to resolve this typeclass instance problem because the type argument to `DecidableEq` is a metavariable. This argument must be fully determined before Lean will try to resolve the typeclass.
+
+Hint: Adding type annotations and supplying implicit arguments to functions can give Lean more information for typeclass resolution. For example, if you have a variable `x` that you intend to be a `Nat`, but Lean reports it as having an unresolved type like `?m`, replacing `x` with `(x : Nat)` can get typeclass resolution un-stuck.
 -/
 #guard_msgs in
 def missingSchema :=
@@ -28,14 +32,14 @@ Table.mk [
 -- ## missingRow
 
 /--
-error: application type mismatch
-  List.cons Row.nil
-argument
+error: Application type mismatch: The argument
   Row.nil
 has type
-  Row [] : Type 1
+  Row []
 but is expected to have type
-  Row [("name", String), ("age", Nat), ("favorite color", String)] : Type 1
+  Row [("name", String), ("age", Nat), ("favorite color", String)]
+in the application
+  List.cons Row.nil
 -/
 #guard_msgs in
 def missingRow :
@@ -49,14 +53,23 @@ Table.mk [
 -- ## missingCell
 
 /--
-error: application type mismatch
-  Row.cons (Cell.val "blue")
-argument
+error: Application type mismatch: The argument
+  Row.nil
+has type
+  Row []
+but is expected to have type
+  Row [("favorite color", String)]
+in the application
+  Row.cons ?_ Row.nil
+---
+error: Application type mismatch: The argument
   Cell.val "blue"
 has type
-  Cell "age" String : Type
+  Cell ?_ String
 but is expected to have type
-  Cell "age" Nat : Type
+  Cell "age" Nat
+in the application
+  Row.cons (Cell.val "blue")
 -/
 #guard_msgs in
 def missingCell :
@@ -69,53 +82,38 @@ Table.mk [
 
 -- ## swappedColumns
 /--
-error: application type mismatch
-  Row.cons (Cell.val "Bob")
-argument
-  Cell.val "Bob"
-has type
-  Cell "age" String : Type
-but is expected to have type
-  Cell "age" Nat : Type
----
-error: application type mismatch
-  Row.cons (Cell.val "Alice")
-argument
-  Cell.val "Alice"
-has type
-  Cell "age" String : Type
-but is expected to have type
-  Cell "age" Nat : Type
----
-error: application type mismatch
-  Row.cons (Cell.val "Eve")
-argument
-  Cell.val "Eve"
-has type
-  Cell "age" String : Type
-but is expected to have type
-  Cell "age" Nat : Type
----
-error: failed to synthesize
+error: failed to synthesize instance of type class
   OfNat String 12
 numerals are polymorphic in Lean, but the numeral `12` cannot be used in a context where the expected type is
   String
 due to the absence of the instance above
-Additional diagnostic information may be available using the `set_option diagnostics true` command.
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
 ---
-error: failed to synthesize
+error: failed to synthesize instance of type class
   OfNat String 17
 numerals are polymorphic in Lean, but the numeral `17` cannot be used in a context where the expected type is
   String
 due to the absence of the instance above
-Additional diagnostic information may be available using the `set_option diagnostics true` command.
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
 ---
-error: failed to synthesize
+error: failed to synthesize instance of type class
   OfNat String 13
 numerals are polymorphic in Lean, but the numeral `13` cannot be used in a context where the expected type is
   String
 due to the absence of the instance above
-Additional diagnostic information may be available using the `set_option diagnostics true` command.
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+---
+error: Application type mismatch: The argument
+  Cell.val "Eve"
+has type
+  Cell ?_ String
+but is expected to have type
+  Cell "age" Nat
+in the application
+  Row.cons (Cell.val "Eve")
 -/
 #guard_msgs in
 def swappedColumns :
@@ -131,32 +129,32 @@ Table.mk [
 -- are data present where an absence of data was expected"
 
 /--
-error: application type mismatch
-  Row.cons (Cell.val 12) (Row.cons (Cell.val "blue") Row.nil)
-argument
+error: Application type mismatch: The argument
   Row.cons (Cell.val "blue") Row.nil
 has type
-  Row [(?_, String)] : Type 1
+  Row [(?_, String)]
 but is expected to have type
-  Row [] : Type 1
+  Row []
+in the application
+  Row.cons (Cell.val 12) (Row.cons (Cell.val "blue") Row.nil)
 ---
-error: application type mismatch
-  Row.cons (Cell.val 17) (Row.cons (Cell.val "green") Row.nil)
-argument
+error: Application type mismatch: The argument
   Row.cons (Cell.val "green") Row.nil
 has type
-  Row [(?_, String)] : Type 1
+  Row [(?_, String)]
 but is expected to have type
-  Row [] : Type 1
+  Row []
+in the application
+  Row.cons (Cell.val 17) (Row.cons (Cell.val "green") Row.nil)
 ---
-error: application type mismatch
-  Row.cons (Cell.val 13) (Row.cons (Cell.val "red") Row.nil)
-argument
+error: Application type mismatch: The argument
   Row.cons (Cell.val "red") Row.nil
 has type
-  Row [(?_, String)] : Type 1
+  Row [(?_, String)]
 but is expected to have type
-  Row [] : Type 1
+  Row []
+in the application
+  Row.cons (Cell.val 13) (Row.cons (Cell.val "red") Row.nil)
 -/
 #guard_msgs in
 def schemaTooShort : Table [("name", String), ("age", Nat)] :=
@@ -173,32 +171,41 @@ Table.mk [
 -- fourth column.
 
 /--
-error: application type mismatch
-  Row.cons (Cell.val "blue")
-argument
-  Cell.val "blue"
+error: Application type mismatch: The argument
+  Row.nil
 has type
-  Cell "favorite number" String : Type
+  Row []
 but is expected to have type
-  Cell "favorite number" Nat : Type
+  Row [("favorite color", String)]
+in the application
+  Row.cons ?_ Row.nil
 ---
-error: application type mismatch
-  Row.cons (Cell.val "green")
-argument
-  Cell.val "green"
+error: Application type mismatch: The argument
+  Row.nil
 has type
-  Cell "favorite number" String : Type
+  Row []
 but is expected to have type
-  Cell "favorite number" Nat : Type
+  Row [("favorite color", String)]
+in the application
+  Row.cons ?_ Row.nil
 ---
-error: application type mismatch
-  Row.cons (Cell.val "red")
-argument
+error: Application type mismatch: The argument
+  Row.nil
+has type
+  Row []
+but is expected to have type
+  Row [("favorite color", String)]
+in the application
+  Row.cons ?_ Row.nil
+---
+error: Application type mismatch: The argument
   Cell.val "red"
 has type
-  Cell "favorite number" String : Type
+  Cell ?_ String
 but is expected to have type
-  Cell "favorite number" Nat : Type
+  Cell "favorite number" Nat
+in the application
+  Row.cons (Cell.val "red")
 -/
 #guard_msgs in
 def schemaTooLong :
@@ -330,7 +337,7 @@ def brownGetAcneCorrected :=
 /--
 error: could not synthesize default value for parameter 'h' using tactics
 ---
-error: tactic 'decide' proved that the proposition
+error: Tactic `decide` proved that the proposition
   1 < (students.tfilter fun r => decide (getValue r "name" Schema.HasCol.hd = some "Alice")).nrows
 is false
 -/
@@ -354,12 +361,12 @@ def getOnlyRowCorrected :=
 -- ## favoriteColor
 
 /--
-error: type mismatch
+error: Type mismatch
   getValue r "favorite color" ?_
 has type
-  Option ?_ : Type
+  Option ?_
 but is expected to have type
-  Bool : Type
+  Bool
 -/
 #guard_msgs in
 def participantsLikeGreen {sch : @Schema String} (t : Table sch)

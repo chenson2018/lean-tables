@@ -4,8 +4,8 @@ import Lean
 universe u_η
 universe u
 
-def Header {η} := (η × Type u)
-def Schema {η} := List (@Header η)
+abbrev Header {η} := (η × Type u)
+abbrev Schema {η} := List (@Header η)
 
 -- Schema column predicates
 inductive Schema.HasCol {η : Type u_η} :
@@ -53,10 +53,10 @@ elab "name" : tactic => doNaiveSearch `Schema.HasName "name" "name"
 end
 
 -- Schema-related convenience types
-def Subschema {η : Type u_η} (schm : @Schema η) :=
+abbrev Subschema {η : Type u_η} (schm : @Schema η) :=
   List ((h : Header) × schm.HasCol (h.fst, h.snd))
 
-def EqSubschema {η : Type u_η} (schm : @Schema η) :=
+abbrev EqSubschema {η : Type u_η} (schm : @Schema η) :=
   List ((h : Header) × schm.HasCol (h.fst, h.snd) × DecidableEq h.2)
 
 @[reducible]
@@ -167,14 +167,20 @@ def Schema.HasCol.size : {schema : @Schema η} →
 | _, _, Schema.HasCol.hd => 0
 | _, _, Schema.HasCol.tl h => 1 + size h
 
+-- Matching on the witness alone keeps schema computation reducible during
+-- typeclass synthesis. Splitting its indices as well introduces equality casts.
 @[reducible]
-def Schema.colImpliesName :
-      {schema : @Schema η} →
-      {c : η} →
-      {τ : Type u} →
-      schema.HasCol (c, τ) → schema.HasName c
-| h :: hs, _, _, HasCol.hd => HasName.hd
-| h :: hs, c, τ, HasCol.tl p => HasName.tl (colImpliesName p)
+private def Schema.HasCol.toHasName {schema : @Schema η} {hdr : @Header η}
+    (h : schema.HasCol hdr) : schema.HasName hdr.1 :=
+  match h with
+  | .hd => .hd
+  | .tl h => .tl (toHasName h)
+termination_by structural h
+
+@[reducible]
+def Schema.colImpliesName {schema : @Schema η} {c : η} {τ : Type u}
+    (h : schema.HasCol (c, τ)) : schema.HasName c :=
+  h.toHasName
 
 -- There occasionally seem to be some issues with this function, too -- not sure
 -- if it's the same issue as `removeName` and `lookup`, but will leave these
@@ -214,10 +220,10 @@ def Schema.memTNamesOfHasName :
 -- | (nm, τ)::xs, c => if c = nm then xs else (nm, τ) :: removeName xs c
 
 @[reducible]
-def Schema.removeName {c : η} :
-    (s : @Schema η) → (v_nm : s.HasName c) → @Schema η
-| _::s, Schema.HasName.hd => s
-| s::ss, Schema.HasName.tl h => s :: removeName ss h
+def Schema.removeName {c : η} (s : @Schema η) (v_nm : s.HasName c) : @Schema η :=
+  match v_nm with
+  | .hd (rs := rs) => rs
+  | .tl (r := r) h => r :: removeName _ h
 
 theorem Schema.removeName_eq_1 {η : Type u_η} [DecidableEq η]
   {c : η} (hdr : @Header η) (ss : @Schema η) :
@@ -399,9 +405,8 @@ theorem Schema.lookupType_eq_snd_lookup (s : @Schema η) (cn : CertifiedName s) 
   cases cn with | mk nm pf =>
   induction pf with
   | hd =>
-    simp only [lookupType]
+    rfl
   | tl h ih =>
-    simp only [lookupType]
     rw [lookup_eq_2]
     apply ih
 
@@ -413,9 +418,10 @@ def Schema.pick {η : Type u_η} [DecidableEq η] (s : @Schema η)
 
 @[reducible]
 def Schema.retypeColumn {η : Type u_η} [DecidableEq η]
-    : {nm : η} → (s : @Schema η) → s.HasName nm → Type u → @Schema η
-| _, (nm, τ) :: cs, Schema.HasName.hd, τ' => (nm, τ') :: cs
-| _, c :: cs, Schema.HasName.tl h, τ' => c :: retypeColumn cs h τ'
+    {nm : η} (s : @Schema η) (h : s.HasName nm) (τ' : Type u) : @Schema η :=
+  match h with
+  | .hd (rs := rs) => (nm, τ') :: rs
+  | .tl (r := r) h => r :: retypeColumn _ h τ'
 
 theorem Schema.retypeColumn_preserves_names :
   ∀ (s : @Schema η) {nm : η} (h : s.HasName nm) (τ : Type _),
@@ -450,14 +456,11 @@ def RetypedSubschema.toSchema {schm : @Schema η} :
 | ⟨hdr, _⟩ :: ss => hdr :: toSchema ss
 
 @[reducible]
-def Schema.schemaHasRetypedSubschemaName : {nm : η} →
-  {schema : @Schema η} → {rs : RetypedSubschema schema} →
+def Schema.schemaHasRetypedSubschemaName {nm : η}
+  {schema : @Schema η} : {rs : RetypedSubschema schema} →
   (h : rs.toSchema.HasName nm) → schema.HasName nm
-| _, s₁ :: ss₁, ⟨hdr, pf⟩ :: ss₂, Schema.HasName.hd => pf
-| nm, schema₁, schema₂@(⟨hdr, pf⟩ :: ss), Schema.HasName.tl h =>
-  have term_helper : sizeOf h < sizeOf (@Schema.HasName.tl η hdr _ _ h) := by
-    simp
-  schemaHasRetypedSubschemaName h
+| ⟨_, pf⟩ :: _, Schema.HasName.hd => pf
+| _ :: _, Schema.HasName.tl h => schemaHasRetypedSubschemaName h
 
 @[reducible]
 def Schema.hasNameOfRetypedHasName :
@@ -487,9 +490,8 @@ def Schema.hasNameOfRetypedHasName_hasRetypedName :
 | _, _, _, _, .hd, .tl h => rfl
 | _, _, _, _, .tl h, .hd => rfl
 | _, _, _, _, .tl h, .tl h' => by
-  simp only [hasRetypedName, hasNameOfRetypedHasName]
-  rw [Schema.HasName.tl.injEq]
-  apply hasNameOfRetypedHasName_hasRetypedName
+  exact congrArg HasName.tl
+    (hasNameOfRetypedHasName_hasRetypedName (h := h) (h' := h'))
 
 @[reducible]
 def Schema.retypedHasOtherCol :
@@ -519,9 +521,10 @@ def Schema.flattenLists : (schema : @Schema η) →
 
 @[reducible]
 def Schema.renameColumn {η : Type u_η} [DecidableEq η]
-    : {nm : η} → (s : @Schema η) → s.HasName nm → η → @Schema η
-| _, (nm, τ) :: cs, Schema.HasName.hd, nm' => (nm', τ) :: cs
-| _, c :: cs, Schema.HasName.tl h, nm' => c :: renameColumn cs h nm'
+    {nm : η} (s : @Schema η) (h : s.HasName nm) (nm' : η) : @Schema η :=
+  match h with
+  | .hd (rs := rs) (τ := τ) => (nm', τ) :: rs
+  | .tl (r := r) h => r :: renameColumn _ h nm'
 
 @[reducible]
 def Schema.renameColumnCN {η : Type u_η} [DecidableEq η]
@@ -599,16 +602,13 @@ def Schema.schemaHasLookupType :
 | _, _, .tl h => .tl (schemaHasLookupType _ _ h)
 
 @[reducible]
-def Schema.schemaHasSubschema : {nm : η} → {τ : Type u} →
-                                {schema : @Schema η} →
+def Schema.schemaHasSubschema {nm : η} {τ : Type u}
+                                {schema : @Schema η} :
                                 {subschema : Subschema schema} →
                                 (h : subschema.toSchema.HasCol (nm, τ)) →
     schema.HasCol (nm, τ)
-| _, _, s₁ :: ss₁, ⟨hdr, pf⟩ :: ss₂, Schema.HasCol.hd => pf
-| nm, τ, schema₁, schema₂@(⟨hdr, pf⟩ :: ss), Schema.HasCol.tl h =>
-  have term_helper : sizeOf h < sizeOf (@Schema.HasCol.tl η hdr _ _ _ h) := by
-    simp
-  schemaHasSubschema h
+| ⟨_, pf⟩ :: _, Schema.HasCol.hd => pf
+| _ :: _, Schema.HasCol.tl h => schemaHasSubschema h
 
 -- `removeHeader` (and, for completeness, `removeName`) preservation
 -- for non-elements of the action list
@@ -720,7 +720,7 @@ entries "in reverse" (i.e., enables them to be "lifted" to a schema prior to
 the ActionList's associated transformation) and generates a list of action list
 entries at the top-level (original, pre-transformation) schema.
 -/
-@[semireducible] def ActionList.toList {sch : @Schema η} {κ : @Schema η → Type u}
+def ActionList.toList {sch : @Schema η} {κ : @Schema η → Type u}
     {f : ∀ (s : @Schema η), κ s → @Schema η}
     (pres : ∀ (s : @Schema η) (k : κ s), κ (f s k) → κ s)
     : ActionList f sch → List (κ sch)
@@ -734,5 +734,5 @@ def BiActionList.toList {schs : @Schema η × @Schema η}
     : BiActionList f schs → List (κ schs)
 | BiActionList.nil => []
 | BiActionList.cons x xs =>
-  have hterm : sizeOf xs < sizeOf (cons x xs) := by simp
+  have hterm : sizeOf xs < sizeOf (cons x xs) := by simp; omega
   x :: (toList pres xs).map (pres schs x)

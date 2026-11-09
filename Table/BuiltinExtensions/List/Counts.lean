@@ -18,7 +18,7 @@ def List.counts {α} [DecidableEq α] (xs : List α) : List (α × Nat) :=
 theorem List.map_fst_incrCounts_eq_map_fst [DecidableEq α] (x : α) :
   ∀ (as : List (α × Nat)) (h : x ∈ map Prod.fst as),
   map Prod.fst (incrCounts as x) = map Prod.fst as
-| (.(x), _) :: as, List.Mem.head _ => by simp only [map, incrCounts]
+| (.(x), _) :: as, List.Mem.head _ => by simp only [map, incrCounts, ite_true]
 | a :: as, List.Mem.tail _ h' =>
   have ih := map_fst_incrCounts_eq_map_fst x as h'
   match Decidable.em (a.1 = x) with
@@ -66,9 +66,9 @@ theorem List.length_uniqueAux_congr_append_cons_acc [DecidableEq α]
       apply Iff.intro
       . intros h
         cases mem_append.mp h with
-        | inl hcs => exact mem_append_of_mem_left _ hcs
+        | inl hcs => exact mem_append.mpr (Or.inl hcs)
         | inr hcons =>
-          apply mem_append_of_mem_right
+          apply mem_append.mpr ∘ Or.inr
           rw [←cons_append] at hcons
           cases mem_append.mp hcons with
           | inl hxas => exact List.Mem.tail _ hxas
@@ -78,17 +78,17 @@ theorem List.length_uniqueAux_congr_append_cons_acc [DecidableEq α]
             | head _ => exact List.Mem.head _
       . intros h
         cases mem_append.mp h with
-        | inl hcs => exact mem_append_of_mem_left _ hcs
+        | inl hcs => exact mem_append.mpr (Or.inl hcs)
         | inr hcons =>
-          apply mem_append_of_mem_right
+          apply mem_append.mpr ∘ Or.inr
           cases hcons with
           | head _ =>
             apply List.Mem.tail
-            apply mem_append_of_mem_right
+            apply mem_append.mpr ∘ Or.inr
             apply List.mem_singleton.mpr rfl
           | tail _ hcons' =>
             rw [←cons_append]
-            exact mem_append_of_mem_left _ hcons'
+            exact mem_append.mpr (Or.inl hcons')
 
     simp only [uniqueAux]
     cases Decidable.em (z ∈ cs ++ x :: (as ++ [y])) with

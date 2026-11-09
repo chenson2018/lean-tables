@@ -117,23 +117,20 @@ theorem Schema.get_map_nths_eq_get_get :
   ∀ (xs : List (α × β)) (ns : List (Fin $ Schema.length xs)) (i : Nat)
     (hi : i < ns.length),
   (List.map Prod.fst (nths xs ns)).get ⟨i,
-    List.length_map (nths xs ns) Prod.fst ▸ length_nths xs ns ▸ hi
+    List.length_map Prod.fst (as := nths xs ns) ▸ length_nths xs ns ▸ hi
   ⟩ =
   (List.map Prod.fst xs).get ⟨(ns.get ⟨i, hi⟩).val,
-    (List.length_map xs Prod.fst) ▸
+    (List.length_map Prod.fst (as := xs)) ▸
     (Eq.subst (Schema.length_eq_List_length ▸ rfl)
               (List.get ns ⟨i, hi⟩).isLt)
   ⟩
 | xs, n :: ns, 0, hi => by
-  simp only [nths, map, get]
+  simp only [nths, map, List.map, List.get_eq_getElem, List.getElem_cons_zero]
   rw [nth_eq_get]
-  simp only [List.get]
-  rw [List.get_map Prod.fst]
+  simp only [List.getElem_map, List.get_eq_getElem]
 | xs, n :: ns, .succ i, hi => by
-  simp only [nths, map, get]
-  have ih := get_map_nths_eq_get_get xs ns i (Nat.lt_of_succ_lt_succ hi)
-  simp only [List.get]
-  rw [←ih]
+  simpa only [nths, map, List.map, List.get_eq_getElem, List.getElem_cons_succ] using
+    get_map_nths_eq_get_get xs ns i (Nat.lt_of_succ_lt_succ hi)
 
 @[reducible]
 def Schema.hasAppendedHead :
@@ -178,7 +175,7 @@ theorem Schema.lookup_eq_lookup_append :
 by intros s t c h
    induction h with
    | hd =>
-     simp only [Schema.hasNameOfAppend]
+     rfl
    | tl h' ih =>
      simp only [Schema.hasNameOfAppend]
      rw [Schema.lookup_eq_2, Schema.lookup_eq_2]
@@ -450,8 +447,8 @@ theorem Schema.lookupTypeFromCHeadersUnique :
     Schema.lookupType (Schema.fromCHeaders cs) c
 | [], [], ⟨_, h⟩ => nomatch h
 | (nm, τ) :: hs, ⟨_, .hd⟩ :: cs, ⟨_, .hd⟩ => by
-  simp only [lookupType]
-  simp only [hasNameOfFromCHeaders_eq_1]
+  rw [hasNameOfFromCHeaders_eq_1]
+  rfl
 | (nm, τ) :: hs, ⟨(ch_nm, ch_τ), .tl h⟩ :: cs, ⟨.(ch_nm), .hd⟩ =>
   by
   simp only [lookupType]
@@ -510,7 +507,6 @@ theorem Schema.lookup_nth :
 theorem Schema.hasNameEqHeadOrTail_inl (h : Schema.HasName nm ((nm, τ) :: hs)) :
   (Schema.hasNameEqHeadOrTail h ≡ .inl (.refl _)) → h = .hd := by
   intro eqt
-  simp only [hasNameEqHeadOrTail] at eqt
   cases h
   . rfl
   . contradiction
@@ -520,11 +516,9 @@ theorem Schema.hasNameEqHeadOrTail_inr
   (htl) :
   (Schema.hasNameEqHeadOrTail h ≡ .inr htl) → h = .tl htl := by
   intro eqt
-  simp only [hasNameEqHeadOrTail] at eqt
   cases h
   . contradiction
-  . simp only at eqt
-    cases eqt
+  . cases eqt
     rfl
 
 theorem Schema.lookupType_nths_eq_lookupType :
@@ -536,9 +530,9 @@ theorem Schema.lookupType_nths_eq_lookupType :
   Schema.lookupType sch ⟨nm, Schema.hasNameOfNthsHasName pf⟩
 | sch, [], nm, pf => nomatch pf
 | (snm, sτ) :: sch, ⟨0, hlt⟩ :: ns, .(snm), .hd => by
-  simp only [Schema.lookupType]
   unfold Schema.hasNameOfNthsHasName
   simp only [Schema.hasNameEqHeadOrTail, Schema.hasNthName, Schema.lookupType]
+  rfl
 | (snm, sτ) :: sch, ⟨0, hlt⟩ :: ns, nm, .tl h => by
   conv =>
     lhs

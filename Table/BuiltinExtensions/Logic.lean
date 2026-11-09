@@ -4,13 +4,13 @@ definitions for type-level logical operators.
 -/
 
 theorem not_or_distrib : ¬ (a ∨ b) ↔ ¬a ∧ ¬b :=
-Iff.intro
-(λ h => And.intro (λ ha => h (Or.intro_left _ ha))
-                  (λ hb => h (Or.intro_right _ hb)))
-(λ h => λ hneg =>
-  match hneg with
-  | Or.inl ha => h.left ha
-  | Or.inr hb => h.right hb)
+  Iff.intro
+    (λ h => And.intro (λ ha => h (Or.intro_left _ ha))
+                      (λ hb => h (Or.intro_right _ hb)))
+    (λ h => λ hneg =>
+      match hneg with
+      | Or.inl ha => h.left ha
+      | Or.inr hb => h.right hb)
 
 theorem not_not (p : Prop) : p → ¬¬p := λ hp hneg => hneg hp
 

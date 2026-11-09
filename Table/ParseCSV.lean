@@ -13,7 +13,7 @@ This is a bare-bones implementation for demonstration purposes and is likely to 
 work with in more complex use cases. This is adapted from Gabriel Ebner's proof-of-concept code:
 https://leanprover.zulipchat.com/#narrow/channel/270676-lean4/topic/.E2.9C.94.20Higher.20universes.20in.20.60IO.60
 -/
-abbrev PIO (α : Type u) := EStateM (ULift IO.Error) (ULift IO.RealWorld) α
+abbrev PIO (α : Type u) := EStateM (ULift IO.Error) (ULift (Void IO.RealWorld)) α
 
 namespace PIO
 
@@ -110,9 +110,9 @@ inductive HeaderMode
   | checkHeader | skipHeader | noHeader
 
 def parse (s : String) : Except String $ Array (Array String) :=
-  match file s.mkIterator with
+  match file ⟨s, s.startPos⟩ with
   | ParseResult.success _ res => Except.ok res
-  | ParseResult.error it err  => Except.error s!"CSV parsing error at offset {it.i.byteIdx}: {err}"
+  | ParseResult.error it err  => Except.error s!"CSV parsing error at offset {it.2.offset.byteIdx}: {err}"
 
 class CSVParseable (τ : Type u) where
   parse : String → Option τ
@@ -132,8 +132,9 @@ class inductive ParseableSchema : @Schema η → Type _
 
 instance parseableSchemaNil : ParseableSchema (η := η) [] := .nil
 
-instance parseableSchemaCons {nm : η} [CSVParseable τ] : ParseableSchema hs → ParseableSchema ((nm, τ) :: hs) :=
-  fun hhs => .cons hhs
+instance parseableSchemaCons {nm : η} [CSVParseable τ] [hhs : ParseableSchema hs] :
+    ParseableSchema ((nm, τ) :: hs) :=
+  .cons hhs
 
 macro "ps_inst" : tactic => `(tactic|
   repeat first | apply parseableSchemaNil | apply parseableSchemaCons | infer_instance
@@ -157,7 +158,7 @@ where
   | _ :: hs, csvRow, i, .cons (i := _) ps =>
     if h : i < csvRow.size then
       go (sch := hs) csvRow (i + 1) ps |>.bind fun rest =>
-        let raw := csvRow.get ⟨i, h⟩
+        let raw := csvRow[i]'h
         if raw = "" then
           .ok <| .cons .emp rest
         else
@@ -171,7 +172,7 @@ def parseCSV {η : Type u} [DecidableEq η] [CSVParseable η]
     (schema : @Schema η) (contents : String) (headerMode : HeaderMode := .checkHeader)
     (inst : ParseableSchema schema := by ps_inst) : Except String (Table schema) :=
   parse contents |>.bind fun csvRows =>
-    let csvRows := csvRows.map (·.map String.trim)
+    let csvRows := csvRows.map (·.map (·.trimAscii.copy))
     match headerMode with
     | .noHeader => Table.mk <$> csvRows.toList.mapM (rowOfCSVRow? inst)
     | .skipHeader | .checkHeader =>

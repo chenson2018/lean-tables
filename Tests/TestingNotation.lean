@@ -107,7 +107,7 @@ partial def reduceApps (e : Expr) (transparency : TransparencyMode) : TermElabM 
 where
   doTransparentReduction (e : Expr) : TermElabM Expr := do
     let e ← Term.levelMVarToParam (← instantiateMVars e)
-    withTheReader Core.Context (fun ctx => { ctx with options := ctx.options.setBool `smartUnfolding false }) do
+    withOptions (fun opts => opts.setBool `smartUnfolding false) do
       withTransparency (mode := transparency) <| reduce e (skipProofs := true) (skipTypes := true)
 
 /--

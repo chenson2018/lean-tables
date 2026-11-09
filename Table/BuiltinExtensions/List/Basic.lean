@@ -11,10 +11,10 @@ def List.certifiedMap {α β} :
 | x :: xs, f =>
   f x (MemT.hd x xs) :: certifiedMap xs (λ x' pf => f x' $ MemT.tl _ pf)
 
-def List.prod {α β} : List α → List β → List (α × β)
+def List.cartesianProd {α β} : List α → List β → List (α × β)
 | [], _ => []
 | _, [] => []
-| [x], y :: ys => (x, y) :: prod [x] ys
+| [x], y :: ys => (x, y) :: cartesianProd [x] ys
 | x :: x' :: xs, ys =>
   have h₁ : Nat.succ 0 + length ys <
             Nat.succ (Nat.succ (length xs)) + length ys :=
@@ -22,7 +22,7 @@ def List.prod {α β} : List α → List β → List (α × β)
   have h₂ : Nat.succ (length xs) + length ys <
             Nat.succ (Nat.succ (length xs)) + length ys :=
     Nat.add_lt_add_right (Nat.succ_lt_succ (Nat.lt.base _)) _
-  prod [x] ys ++ prod (x' :: xs) ys
+  cartesianProd [x] ys ++ cartesianProd (x' :: xs) ys
 termination_by xs ys => xs.length + ys.length
 
 def List.dropLastN {α} : Nat → List α → List α :=
@@ -97,13 +97,13 @@ theorem List.zip_length_eq_of_length_eq :
   )
   congrArg (λ x => x + 1) ih
 
-theorem List.length_prod : ∀ (xs : List α) (ys : List β),
-  List.length (List.prod xs ys) = xs.length * ys.length
-| [], _ => by simp [prod, length]
-| x :: xs, [] => by simp [prod, length]
+theorem List.length_cartesianProd : ∀ (xs : List α) (ys : List β),
+  List.length (List.cartesianProd xs ys) = xs.length * ys.length
+| [], _ => by simp [cartesianProd, length]
+| x :: xs, [] => by simp [cartesianProd, length]
 | [x], y :: ys =>
-  have ih := length_prod [x] ys
-  by simp only [prod]
+  have ih := length_cartesianProd [x] ys
+  by simp only [cartesianProd]
      unfold length  -- adding `length` to the simp above does bad things
      rw [ih]
      simp only [length]
@@ -118,9 +118,9 @@ theorem List.length_prod : ∀ (xs : List α) (ys : List β),
     by apply Nat.add_lt_add_right
        apply Nat.succ_lt_succ
        apply Nat.lt.base
-  have ih₁ := length_prod [x] (y :: ys)
-  have ih₂ := length_prod (x' :: xs) (y :: ys)
-  by unfold prod
+  have ih₁ := length_cartesianProd [x] (y :: ys)
+  have ih₂ := length_cartesianProd (x' :: xs) (y :: ys)
+  by unfold cartesianProd
      simp only
      rw [List.length_append, ih₁, ih₂]
      simp only [length]
@@ -138,12 +138,10 @@ theorem List.length_take_of_lt :
   by simp only [take, length]
      apply congrArg Nat.succ ih
 
-theorem List.reverse_singleton (x : α) : reverse [x] = [x] := rfl
-
 theorem List.map_map_append {α β γ δ : Type _} :
   ∀ (xs : List α) (ys : List β) (f : γ → δ) (g : α → γ) (h : β → γ),
   map f (map g xs ++ map h ys) = map (f ∘ g) xs ++ map (f ∘ h) ys
-| [], ys, f, g, h => map_map f h ys
+| [], ys, f, g, h => map_map
 | x :: xs, ys, f, g, h => congrArg (f (g x) :: ·) (map_map_append xs ys f g h)
 
 theorem List.sum_map_const {xs : List α} {f} (k : Nat) :
@@ -157,27 +155,12 @@ theorem List.sum_map_const {xs : List α} {f} (k : Nat) :
     specialize ih (λ y hy => heq y (.tail _ hy))
     rw [heq x (.head _), ← sum, ih, Nat.mul_add, Nat.add_comm, Nat.mul_one]
 
-theorem List.length_flatMap {α β} {f : α → List β} {xs : List α} :
-    List.length (xs.flatMap f) = (xs.map (List.length ∘ f)).sum := by
-  induction xs with
-  | nil => rfl
-  | cons x xs ih =>
-    simp only [List.flatMap, List.map, List.flatten]
-    cases h : f x with
-    | nil =>
-      rw [List.nil_append, Function.comp, h, List.length_nil, List.sum, foldr,
-          Nat.zero_add]
-      exact ih
-    | cons y ys =>
-      rw [List.length_append, Function.comp, h, List.sum]
-      exact congrArg _ ih
-
 theorem List.length_zipExtendingNone :
   ∀ (xs : List α) (ys : List (Option β)),
     (List.zipExtendingNone xs ys).length = xs.length
 | [], [] => rfl
 | [], _ :: _ => rfl
-| x :: xs, [] => List.length_map (x :: xs) (·, none)
+| x :: xs, [] => List.length_map (·, none)
 | (_ :: xs), (_ :: ys) =>
   have ih := length_zipExtendingNone xs ys
   congrArg (· + 1) ih
@@ -206,7 +189,7 @@ theorem List.map_sublist_of_sublist :
 theorem List.get_mem_cons_of_head_not_mem_getee {y :α} {xs ys : List α} {i} :
   xs.get i ∈ y :: ys → y ∉ xs → xs.get i ∈ ys :=
   λ hget hnmem =>
-  have hget_lem := get_mem xs i.val i.isLt
+  have hget_lem := get_mem xs i
   have hneq_lem := neq_of_mem_not_mem hget_lem hnmem
   match mem_cons.mp hget with
   | .inr htl => htl

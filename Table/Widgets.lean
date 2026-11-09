@@ -20,7 +20,7 @@ instance instToHTMLRowCons {η nm τ} {xs : @Schema η}
       | some v => s!"<td style=\"border:1px solid gray\">{ToHTML.toHTML v}</td>"
       | none   => "<td style=\"border:1px solid gray\"></td>";
     let restOfRow :=
-      ToHTML.toHTML d |> String.drop (n := 4) |> String.dropRight (n := 5)
+      ((ToHTML.toHTML d).drop 4 |>.dropEnd 5).copy
     "<tr>" ++ curCell ++ restOfRow ++ "</tr>"
 
 instance instToHTMLTable {η} {schema : @Schema η}
