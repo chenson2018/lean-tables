@@ -158,7 +158,7 @@ theorem crossJoin_spec2 :
     nrows (crossJoin t₁ t₂) = nrows t₁ * nrows t₂ :=
 by intros sch₁ sch₂ t₁ t₂
    simp only [nrows, crossJoin, List.length_map, Schema.length_eq_List_length]
-   apply List.length_cartesianProd
+   apply List.length_product
 
 -- `leftJoin`
 

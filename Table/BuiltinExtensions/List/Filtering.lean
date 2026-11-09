@@ -342,7 +342,7 @@ theorem List.unique'_Unique [DecidableEq α] : ∀ (xs : List α),
       Nat.lt_succ_of_le (length_filter_le _ _)
     by
       simpa only [unique'] using
-        Unique.cons (mt (Sublist.mem.swap (unique'_sublist _)) (not_mem_filter_neq x xs))
+        Unique.cons (mt (Function.swap Sublist.mem (unique'_sublist _)) (not_mem_filter_neq x xs))
           (unique'_Unique (xs.filter (· ≠ x)))
 termination_by xs => xs.length
 -- END `leftJoin` spec 4 helpers

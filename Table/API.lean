@@ -47,7 +47,7 @@ def crossJoin {schema₁ schema₂ : @Schema η}
   (t1 : Table schema₁) (t2 : Table schema₂) :
   Table (Schema.append schema₁ schema₂) :=
   {rows := List.map (λ (c1, c2) => Row.append c1 c2)
-                    (List.cartesianProd t1.rows t2.rows)}
+                    (List.product t1.rows t2.rows)}
 
 def leftJoin {schema₁ schema₂ : @Schema η}
              (t₁ : Table schema₁)

@@ -23,7 +23,7 @@ def dotProduct (t : Table sch) (c1 : η) (c2 : η)
   List.zip ns ms |>.foldl (λ | acc, (.some n, .some m) => acc + n * m
                              | acc, _                  => acc) 0
 
-#test dotProduct gradebook "quiz1" "quiz2"
+#table_test dotProduct gradebook "quiz1" "quiz2"
 =
 183
 
@@ -62,7 +62,7 @@ def sampleRows (t : Table sch) (n : Fin (nrows t + 1)) : Table sch :=
   let indices := sample (List.finRange (nrows t)) (List.length_finRange ▸ n)
   selectRows1 t indices
 
-#test
+#table_test
 sampleRows gradebookMissing 2
 =
 Table.mk [
@@ -227,7 +227,7 @@ def quizScoreFilter :=
     let scores := quizColNames.map (λ c => (r.getCell c.2).toOption)
     some $ scores.averageOption)
 
-#test
+#table_test
 quizScoreFilter
 =
 Table.mk [
@@ -276,7 +276,7 @@ def quizAndAverage :=
 def quizScoreSelect :=
   addColumn gradebook "average-quiz" (getColumn2 quizAndAverage "average")
 
-#test
+#table_test
 quizScoreSelect
 =
 Table.mk [
@@ -302,7 +302,7 @@ def groupByRetentive' {schema : @Schema η} {τ : Type u} [DecidableEq τ]
     tfilter t (λ r => Option.map ULift.up (getValue r c hc) = k)
   buildColumn liftedKeys "groups" makeGroup
 
-#test
+#table_test
 groupByRetentive' students "favorite color"
 =
 Table.mk [
@@ -311,7 +311,7 @@ Table.mk [
   /[ULift.up "red", Table.mk [/["Eve", 13, "red"]]]
 ]
 
-#test
+#table_test
 groupByRetentive' jellyAnon "brown"
 =
 Table.mk [
@@ -349,7 +349,7 @@ def groupBySubtractive' {schema : @Schema η} {τ : Type u} [DecidableEq τ]
     some $ dropColumn g c (Schema.colImpliesName hc)
   buildColumn liftedKeys "groups" makeGroup
 
-#test
+#table_test
 (groupBySubtractive' students "favorite color" :)
 =
 Table.mk [
@@ -358,7 +358,7 @@ Table.mk [
   /[ULift.up "red", Table.mk [/["Eve", 13]]]
 ]
 
-#test
+#table_test
 (groupBySubtractive' jellyAnon "brown" :)
 =
 Table.mk [

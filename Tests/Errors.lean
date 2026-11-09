@@ -37,7 +37,7 @@ error: Application type mismatch: The argument
 has type
   Row []
 but is expected to have type
-  Row [("name", String), ("age", Nat), ("favorite color", String)]
+  Row [("name", String), ("age", ℕ), ("favorite color", String)]
 in the application
   List.cons Row.nil
 -/
@@ -67,7 +67,7 @@ error: Application type mismatch: The argument
 has type
   Cell ?_ String
 but is expected to have type
-  Cell "age" Nat
+  Cell "age" ℕ
 in the application
   Row.cons (Cell.val "blue")
 -/
@@ -111,7 +111,7 @@ error: Application type mismatch: The argument
 has type
   Cell ?_ String
 but is expected to have type
-  Cell "age" Nat
+  Cell "age" ℕ
 in the application
   Row.cons (Cell.val "Eve")
 -/
@@ -203,7 +203,7 @@ error: Application type mismatch: The argument
 has type
   Cell ?_ String
 but is expected to have type
-  Cell "favorite number" Nat
+  Cell "favorite number" ℕ
 in the application
   Row.cons (Cell.val "red")
 -/
@@ -246,8 +246,8 @@ opaque pieChart (t : Table sch)
 error: could not synthesize default value for parameter 'hc1' using tactics
 ---
 error: Could not prove that header ("mid",
-  Nat) is in schema [("name", String), ("age", Nat), ("quiz1", Nat), ("quiz2", Nat), ("midterm", Nat), ("quiz3", Nat),
-  ("quiz4", Nat), ("final", Nat)]
+  ℕ) is in schema [("name", String), ("age", ℕ), ("quiz1", ℕ), ("quiz2", ℕ), ("midterm", ℕ), ("quiz3", ℕ), ("quiz4", ℕ),
+  ("final", ℕ)]
 -/
 #guard_msgs in
 def midFinal :=
@@ -283,11 +283,11 @@ def blackAndWhiteCorrected :=
 /--
 error: could not synthesize default value for parameter 'hc1' using tactics
 ---
-error: Could not prove that header ("true", Bool) is in schema [("value", Bool), ("count", Nat)]
+error: Could not prove that header ("true", Bool) is in schema [("value", Bool), ("count", ℕ)]
 ---
 error: could not synthesize default value for parameter 'hc2' using tactics
 ---
-error: Could not prove that header ("get acne", Nat) is in schema [("value", Bool), ("count", Nat)]
+error: Could not prove that header ("get acne", ℕ) is in schema [("value", Bool), ("count", ℕ)]
 -/
 #guard_msgs in
 def showAcneProportions {sch : @Schema String}
@@ -447,7 +447,7 @@ def employeeToDept {emplSch deptSch : @Schema String}
 /--
 error: could not synthesize default value for parameter 'hdln' using tactics
 ---
-error: Could not prove that header ("Last Name", String) is in schema [("Department ID", Nat), ("Department Name", String)]
+error: Could not prove that header ("Last Name", String) is in schema [("Department ID", ℕ), ("Department Name", String)]
 -/
 #guard_msgs in
 def employeeToDepartment :=

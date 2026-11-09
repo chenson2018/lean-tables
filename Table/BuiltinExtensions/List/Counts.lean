@@ -39,7 +39,7 @@ theorem List.map_fst_incrCounts_eq_cons_fst [DecidableEq α] (x : α) :
     cases Decidable.em (a.1 = x) with
     | inl heq =>
       apply absurd h
-      apply not_not
+      apply not_not_intro
       simp only [map, heq]
       apply List.Mem.head
     | inr hneq =>

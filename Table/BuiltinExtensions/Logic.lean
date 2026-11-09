@@ -1,3 +1,5 @@
+import Mathlib.Logic.Function.Defs
+
 /-!
 Contains lemmas about existing logical operators and functions; also contains
 definitions for type-level logical operators.
@@ -11,8 +13,6 @@ theorem not_or_distrib : ¬ (a ∨ b) ↔ ¬a ∧ ¬b :=
       match hneg with
       | Or.inl ha => h.left ha
       | Or.inr hb => h.right hb)
-
-theorem not_not (p : Prop) : p → ¬¬p := λ hp hneg => hneg hp
 
 theorem Or.assoc : (P ∨ Q) ∨ R ↔ P ∨ Q ∨ R :=
   Iff.intro (λ h => h.elim (λ hpq => hpq.elim Or.inl (Or.inr ∘ Or.inl))
@@ -30,9 +30,6 @@ theorem Eq.cast_distrib_fun {α} {x y : α} {σ τ : α → Type _}
   h.rec (Eq.refl (f t))
 
 def Injective (f : α → β) := ∀ a a', f a = f a' → a = a'
-
-def Function.swap (f : α → β → γ) : β → α → γ :=
-  λ b a => f a b
 
 -- Type-level negation for use with type-valued predicates
 def NotT (α : Type _) := α → Empty

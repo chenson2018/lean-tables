@@ -7,14 +7,15 @@ open Lean Lean.Elab Lean.Elab.Command Lean.Meta
 
 /-
 This file contains a modified version of `#eval` (pulled from
-`Lean.Elab.BuiltinCommand`) to facilitate our `#test` command.
+`Lean.Elab.BuiltinCommand`) to facilitate our `#table_test` command.
 -/
 
 -- Modified version of `elabEvalUnsafe` (src/lean/lean/elab/builtincommand.lean)
-syntax (name := test) "#test" term : command
-@[command_elab test]
+-- Keep this assertion runner distinct from Plausible's `#test` command.
+syntax (name := tableTest) "#table_test " term : command
+@[command_elab tableTest]
 unsafe def elabTest : Lean.Elab.Command.CommandElab
-| `(#test%$tk $term) => do
+| `(tableTest| #table_test%$tk $term) => do
     let n := `_evalTest
     let addAndCompile (value : Lean.Expr) : Lean.Elab.TermElabM Unit := do
       -- the type really should be `Bool` at this point (b/c of `mkDecide`)

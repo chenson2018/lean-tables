@@ -46,7 +46,7 @@ theorem List.sieve_mem_iff_true_unique :
   Iff.intro
     (λ hf =>
       have not_mem_sieve_of_not_mem :=
-        mt (Sublist.mem.swap (sieve_sublist bs xs))
+        mt (Function.swap Sublist.mem (sieve_sublist bs xs))
       False.elim $ not_mem_sieve_of_not_mem hnmem hf)
     (λ hb => nomatch hb)
 | 0, x :: xs, true :: bs, pf1, pf2, .cons hnmem hu' =>
